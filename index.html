@@ -1,126 +1,104 @@
-distance_calculator.html<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Haversine Distance Calculator</title>
+    <title>Distance Calculator from Spreadsheet</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            padding: 20px;
-            background-color: #f4f4f9;
-            color: #333;
-        }
-        .container {
-            max-width: 600px;
-            margin: auto;
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            text-align: center;
-            color: #4a4a4a;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        input[type="number"] {
-            width: 100%;
-            padding: 8px;
-            box-sizing: border-box;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        button {
-            width: 100%;
-            padding: 10px;
-            background-color: #007BFF;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        #result {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #e9ecef;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            text-align: center;
-            font-size: 1.1em;
-            font-weight: bold;
-        }
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
+        input[type="file"] { margin-top: 10px; }
+        #results-container { margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px; }
+        .location-item { margin-bottom: 10px; padding: 8px; background-color: #f0f0f0; border-radius: 4px; }
     </style>
+    <!-- Include the SheetJS library from a CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
-<div id="container">
-    <div class="form-group">
-        <label for="lat1">Point 1 Latitude:</label>
-        <input type="number" id="lat1" placeholder="e.g., 40.7128" required>
-    </div>
+<div class="container">
+    <h1>Distance to Locations from Spreadsheet</h1>
+    <p>
+        **Instructions:** First, allow the browser to access your location. Then, select a spreadsheet file (.xlsx or .csv) containing "lat" and "long" columns.
+    </p>
     
-    <div class="form-group">
-        <label for="lon1">Point 1 Longitude:</label>
-        <input type="number" id="lon1" placeholder="e.g., -74.0060" required>
-    </div>
+    <input type="file" id="fileInput" accept=".xlsx,.csv">
     
-    <div class="form-group">
-        <label for="lat2">Point 2 Latitude:</label>
-        <input type="number" id="lat2" placeholder="e.g., 51.5074" required>
-    </div>
-    
-    <div class="form-group">
-        <label for="lon2">Point 2 Longitude:</label>
-        <input type="number" id="lon2" placeholder="e.g., -0.1278" required>
-    </div>
-    
-    <button onclick="calculateDistance()">Calculate Distance</button>
     <div id="results-container">
-        Distance will appear here.
+        <!-- Results will be displayed here -->
     </div>
 </div>
+
 <script>
+// --- Haversine formula for distance calculation ---
+function haversineFast(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Earth's radius in kilometers
+    const toRad = (angle) => (angle * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
 
-function calculateDistance() {
-                document.getElementById('results-container').innerHTML = "<p>here</p>";
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-	        // Get user's current location using Geolocation API
-var myLat, myLon;
-var optn = {
+    return R * c;
+}
 
-			enableHighAccuracy : true,
+// --- Main logic to read file and calculate distances ---
+async function processFile() {
+    const file = document.getElementById('fileInput').files[0];
+    if (!file) {
+        document.getElementById('results-container').innerHTML = "<p>No file selected.</p>";
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-			timeout : Infinity,
-
-			maximumAge : 0
-
-		};
+        // Get user's current location using Geolocation API
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(position => {
-                myLat = position.coords.latitude;
-                myLon = position.coords.longitude;
-                document.getElementById('results-container').innerHTML = "<p>myLat=" + myLat + "myLon=" + myLon + "</p>";
-		}, () => {
-				document.getElementById('results-container').innerHTML = "<p>Could not get your location. Please allow location access.</p>";
-            }, optn );
+                const myLat = position.coords.latitude;
+                const myLon = position.coords.longitude;
+                calculateAllDistances(jsonData, myLat, myLon);
+            }, () => {
+                document.getElementById('results-container').innerHTML = "<p>Could not get your location. Please allow location access.</p>";
+            });
         } else {
             document.getElementById('results-container').innerHTML = "<p>Geolocation is not supported by your browser.</p>";
         }
-
+    };
+    reader.readAsArrayBuffer(file);
 }
+
+function calculateAllDistances(locations, myLat, myLon) {
+    const resultsContainer = document.getElementById('results-container');
+    resultsContainer.innerHTML = '<h2>Distances</h2>';
+
+    locations.forEach((location, index) => {
+        // Ensure lat and long columns exist in the spreadsheet
+        if (location.lat && location.long) {
+            const distance = haversineFast(myLat, myLon, location.lat, location.long);
+            
+            const item = document.createElement('div');
+            item.className = 'location-item';
+            item.innerHTML = `
+                <strong>Location ${index + 1}:</strong>
+                (${location.lat}, ${location.long}) - **${distance.toFixed(2)} km** away.
+            `;
+            resultsContainer.appendChild(item);
+        }
+    });
+}
+
+// Attach event listener to the file input
+document.getElementById('fileInput').addEventListener('change', processFile);
 </script>
 
 </body>
