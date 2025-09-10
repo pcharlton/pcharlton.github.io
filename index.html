@@ -30,22 +30,14 @@
 </div>
 
 <script>
-// --- Haversine formula for distance calculation ---
-function haversineFast(lat1, lon1, lat2, lon2) {
-    const R = 6371; // Earth's radius in kilometers
-    const toRad = (angle) => (angle * Math.PI) / 180;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-              Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    return R * c;
-}
 
 // --- Main logic to read file and calculate distances ---
+const destinations = [
+  'Statue of Liberty, New York, NY',
+  '233 S Wacker Dr, Chicago, IL',
+  'Golden Gate Bridge, San Francisco, CA'
+];
+
 async function processFile() {
     const file = document.getElementById('fileInput').files[0];
     if (!file) {
@@ -63,11 +55,15 @@ async function processFile() {
 
         // Get user's current location using Geolocation API
         if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(position => {
-                const myLat = position.coords.latitude;
-                const myLon = position.coords.longitude;
-                calculateAllDistances(jsonData, myLat, myLon);
-            }, () => {
+			navigator.geolocation.getCurrentPosition(
+			  (position) => {
+				const userLatLng = new google.maps.LatLng(
+				  position.coords.latitude,
+				  position.coords.longitude
+				);
+				calculateDistances(userLatLng);
+			},
+            () => {
                 document.getElementById('results-container').innerHTML = "<p>Could not get your location. Please allow location access.</p>";
             });
         } else {
@@ -77,24 +73,48 @@ async function processFile() {
     reader.readAsArrayBuffer(file);
 }
 
-function calculateAllDistances(locations, myLat, myLon) {
-    const resultsContainer = document.getElementById('results-container');
-    resultsContainer.innerHTML = '<h2>Distances</h2>';
+function calculateDistances(origin) {
+  const service = new google.maps.DistanceMatrixService();
+  
+  const matrixOptions = {
+    origins: [origin],
+    destinations: destinations,
+    travelMode: google.maps.TravelMode.DRIVING,
+    unitSystem: google.maps.UnitSystem.IMPERIAL, // or google.maps.UnitSystem.METRIC
+  };
 
-    locations.forEach((location, index) => {
-        // Ensure lat and long columns exist in the spreadsheet
-        if (location.lat && location.long) {
-            const distance = haversineFast(myLat, myLon, location.lat, location.long);
-            
-            const item = document.createElement('div');
-            item.className = 'location-item';
-            item.innerHTML = `
-                <strong>Location ${index + 1}:</strong>
-                (${location.lat}, ${location.long}) - **${distance.toFixed(2)} km** away.
-            `;
-            resultsContainer.appendChild(item);
-        }
-    });
+  service.getDistanceMatrix(matrixOptions, callback);
+}
+
+function callback(response, status) {
+  const resultsDiv = document.getElementById('distance-results');
+  if (status === "OK") {
+    const results = response.rows[0].elements;
+    resultsDiv.innerHTML = "<h2>Results:</h2>";
+    for (let i = 0; i < results.length; i++) {
+      const element = results[i];
+      const destinationAddress = destinations[i];
+      const distanceText = element.distance.text;
+      const durationText = element.duration.text;
+      
+      resultsDiv.innerHTML += `
+        <p>
+          <strong>To:</strong> ${destinationAddress}<br>
+          <strong>Distance:</strong> ${distanceText}<br>
+          <strong>Duration:</strong> ${durationText}
+        </p>
+      `;
+    }
+  } else {
+    resultsDiv.innerHTML = `Error with Distance Matrix service: ${status}`;
+  }
+}
+
+function handleLocationError(browserHasGeolocation) {
+  const resultsDiv = document.getElementById('distance-results');
+  resultsDiv.innerHTML = browserHasGeolocation
+    ? "Error: The Geolocation service failed."
+    : "Error: Your browser doesn't support geolocation.";
 }
 
 // Attach event listener to the file input
