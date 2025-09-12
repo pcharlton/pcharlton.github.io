@@ -15,15 +15,6 @@
        * SPDX-License-Identifier: Apache-2.0
        */
       function initMap() {
-        const bounds = new google.maps.LatLngBounds();
-        const markersArray = [];
-        const map = new google.maps.Map(document.getElementById("map"), {
-          center: { lat: 55.53, lng: 9.4 },
-          zoom: 10,
-        });
-        // initialize services
-        const geocoder = new google.maps.Geocoder();
-        const service = new google.maps.DistanceMatrixService();
 		var userLatLng;
         // build request
 		if (navigator.geolocation) {
@@ -35,11 +26,21 @@
 				);
 			},
             () => {
-                document.getElementById('results-container').innerHTML = "<p>Could not get your location. Please allow location access.</p>";
+                document.getElementById('message-container').innerHTML = "<p>Could not get your location. Please allow location access.</p>";
             });
         } else {
-            document.getElementById('results-container').innerHTML = "<p>Geolocation is not supported by your browser.</p>";
+            document.getElementById('message-container').innerHTML = "<p>Geolocation is not supported by your browser.</p>";
         }
+        const bounds = new google.maps.LatLngBounds();
+        const markersArray = [];
+		// 37.852524548	-78.271317821
+        const map = new google.maps.Map(document.getElementById("map"), {
+          center: { lat: 37.85, -78.27 },
+          zoom: 10,
+        });
+        // initialize services
+        const geocoder = new google.maps.Geocoder();
+        const service = new google.maps.DistanceMatrixService();
         ///const origin1 = { lat: 55.93, lng: -3.118 };
         //const origin2 = "Greenwich, England";
 		// 38.176827213	-79.035348269
