@@ -24,7 +24,7 @@
         // initialize services
         const geocoder = new google.maps.Geocoder();
         const service = new google.maps.DistanceMatrixService();
-		const userLatLng;
+		var userLatLng;
         // build request
 		if (navigator.geolocation) {
 			navigator.geolocation.getCurrentPosition(
