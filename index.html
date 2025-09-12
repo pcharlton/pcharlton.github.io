@@ -1,125 +1,158 @@
+
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Distance Calculator from Spreadsheet</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .container { max-width: 800px; margin: auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
-        input[type="file"] { margin-top: 10px; }
-        #results-container { margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px; }
-        .location-item { margin-bottom: 10px; padding: 8px; background-color: #f0f0f0; border-radius: 4px; }
-    </style>
-    <!-- Include the SheetJS library from a CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-</head>
-<body>
+<!--
+ @license
+ Copyright 2019 Google LLC. All Rights Reserved.
+ SPDX-License-Identifier: Apache-2.0
+-->
+<html>
+  <head>
+    <title>Distance Matrix Service</title>
+    <script>
+      /**
+       * @license
+       * Copyright 2019 Google LLC. All Rights Reserved.
+       * SPDX-License-Identifier: Apache-2.0
+       */
+      function initMap() {
+        const bounds = new google.maps.LatLngBounds();
+        const markersArray = [];
+        const map = new google.maps.Map(document.getElementById("map"), {
+          center: { lat: 55.53, lng: 9.4 },
+          zoom: 10,
+        });
+        // initialize services
+        const geocoder = new google.maps.Geocoder();
+        const service = new google.maps.DistanceMatrixService();
+        // build request
+        const origin1 = { lat: 55.93, lng: -3.118 };
+        const origin2 = "Greenwich, England";
+        const destinationA = "Stockholm, Sweden";
+        const destinationB = { lat: 50.087, lng: 14.421 };
+        const request = {
+          origins: [origin1, origin2],
+          destinations: [destinationA, destinationB],
+          travelMode: google.maps.TravelMode.DRIVING,
+          unitSystem: google.maps.UnitSystem.METRIC,
+          avoidHighways: false,
+          avoidTolls: false,
+        };
 
-<div class="container">
-    <h1>Distance to Locations from Spreadsheet</h1>
-    <p>
-        **Instructions:** First, allow the browser to access your location. Then, select a spreadsheet file (.xlsx or .csv) containing "lat" and "long" columns.
-    </p>
-    
-    <input type="file" id="fileInput" accept=".xlsx,.csv">
-    
-    <div id="results-container">
-        <!-- Results will be displayed here -->
-    </div>
-</div>
+        // put request on page
+        document.getElementById("request").innerText = JSON.stringify(
+          request,
+          null,
+          2
+        );
+        // get distance matrix response
+        service.getDistanceMatrix(request).then((response) => {
+          // put response
+          document.getElementById("response").innerText = JSON.stringify(
+            response,
+            null,
+            2
+          );
 
-<script>
+          // show on map
+          const originList = response.originAddresses;
+          const destinationList = response.destinationAddresses;
 
-// --- Main logic to read file and calculate distances ---
-const destinations = [
-  'Statue of Liberty, New York, NY',
-  '233 S Wacker Dr, Chicago, IL',
-  'Golden Gate Bridge, San Francisco, CA'
-];
+          deleteMarkers(markersArray);
 
-async function processFile() {
-    const file = document.getElementById('fileInput').files[0];
-    if (!file) {
-        document.getElementById('results-container').innerHTML = "<p>No file selected.</p>";
-        return;
-    }
-    
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+          const showGeocodedAddressOnMap = (asDestination) => {
+            const handler = ({ results }) => {
+              map.fitBounds(bounds.extend(results[0].geometry.location));
+              markersArray.push(
+                new google.maps.Marker({
+                  map,
+                  position: results[0].geometry.location,
+                  label: asDestination ? "D" : "O",
+                })
+              );
+            };
+            return handler;
+          };
 
-        // Get user's current location using Geolocation API
-        if (navigator.geolocation) {
-			navigator.geolocation.getCurrentPosition(
-			  (position) => {
-				const userLatLng = new google.maps.LatLng(
-				  position.coords.latitude,
-				  position.coords.longitude
-				);
-				calculateDistances(userLatLng);
-			},
-            () => {
-                document.getElementById('results-container').innerHTML = "<p>Could not get your location. Please allow location access.</p>";
-            });
-        } else {
-            document.getElementById('results-container').innerHTML = "<p>Geolocation is not supported by your browser.</p>";
+          for (let i = 0; i < originList.length; i++) {
+            const results = response.rows[i].elements;
+
+            geocoder
+              .geocode({ address: originList[i] })
+              .then(showGeocodedAddressOnMap(false));
+
+            for (let j = 0; j < results.length; j++) {
+              geocoder
+                .geocode({ address: destinationList[j] })
+                .then(showGeocodedAddressOnMap(true));
+            }
+          }
+        });
+      }
+
+      function deleteMarkers(markersArray) {
+        for (let i = 0; i < markersArray.length; i++) {
+          markersArray[i].setMap(null);
         }
-    };
-    reader.readAsArrayBuffer(file);
-}
 
-function calculateDistances(origin) {
-  const service = new google.maps.DistanceMatrixService();
-  
-  const matrixOptions = {
-    origins: [origin],
-    destinations: destinations,
-    travelMode: google.maps.TravelMode.DRIVING,
-    unitSystem: google.maps.UnitSystem.IMPERIAL, // or google.maps.UnitSystem.METRIC
-  };
+        markersArray = [];
+      }
 
-  service.getDistanceMatrix(matrixOptions, callback);
-}
+      window.initMap = initMap;
+    </script>
+    <style>
+      /**
+       * @license
+       * Copyright 2019 Google LLC. All Rights Reserved.
+       * SPDX-License-Identifier: Apache-2.0
+       */
+      /* Optional: Makes the sample page fill the window. */
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
 
-function callback(response, status) {
-  const resultsDiv = document.getElementById('distance-results');
-  if (status === "OK") {
-    const results = response.rows[0].elements;
-    resultsDiv.innerHTML = "<h2>Results:</h2>";
-    for (let i = 0; i < results.length; i++) {
-      const element = results[i];
-      const destinationAddress = destinations[i];
-      const distanceText = element.distance.text;
-      const durationText = element.duration.text;
-      
-      resultsDiv.innerHTML += `
-        <p>
-          <strong>To:</strong> ${destinationAddress}<br>
-          <strong>Distance:</strong> ${distanceText}<br>
-          <strong>Duration:</strong> ${durationText}
-        </p>
-      `;
-    }
-  } else {
-    resultsDiv.innerHTML = `Error with Distance Matrix service: ${status}`;
-  }
-}
+      #container {
+        height: 100%;
+        display: flex;
+      }
 
-function handleLocationError(browserHasGeolocation) {
-  const resultsDiv = document.getElementById('distance-results');
-  resultsDiv.innerHTML = browserHasGeolocation
-    ? "Error: The Geolocation service failed."
-    : "Error: Your browser doesn't support geolocation.";
-}
+      #sidebar {
+        flex-basis: 15rem;
+        flex-grow: 1;
+        padding: 1rem;
+        max-width: 30rem;
+        height: 100%;
+        box-sizing: border-box;
+        overflow: auto;
+      }
 
-// Attach event listener to the file input
-document.getElementById('fileInput').addEventListener('change', processFile);
-</script>
+      #map {
+        flex-basis: 0;
+        flex-grow: 4;
+        height: 100%;
+      }
 
-</body>
+      #sidebar {
+        flex-direction: column;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container">
+      <div id="map"></div>
+      <div id="sidebar">
+        <h3 style="flex-grow: 0">Request</h3>
+        <pre style="flex-grow: 1" id="request"></pre>
+        <h3 style="flex-grow: 0">Response</h3>
+        <pre style="flex-grow: 1" id="response"></pre>
+      </div>
+    </div>
+    <script
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDYZNT8PjueZDh3aXpghiQ-0OcTYWu-maI&callback=initMap&v=weekly&solution_channel=GMP_CCS_distancematrix_v2"
+      defer
+    ></script>
+  </body>
 </html>
+    
