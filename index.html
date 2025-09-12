@@ -24,16 +24,32 @@
         // initialize services
         const geocoder = new google.maps.Geocoder();
         const service = new google.maps.DistanceMatrixService();
+		const userLatLng;
         // build request
-        const origin1 = { lat: 55.93, lng: -3.118 };
-        const origin2 = "Greenwich, England";
-        const destinationA = "Stockholm, Sweden";
-        const destinationB = { lat: 50.087, lng: 14.421 };
+		if (navigator.geolocation) {
+			navigator.geolocation.getCurrentPosition(
+			  (position) => {
+				userLatLng = new google.maps.LatLng(
+				  position.coords.latitude,
+				  position.coords.longitude
+				);
+			},
+            () => {
+                document.getElementById('results-container').innerHTML = "<p>Could not get your location. Please allow location access.</p>";
+            });
+        } else {
+            document.getElementById('results-container').innerHTML = "<p>Geolocation is not supported by your browser.</p>";
+        }
+        ///const origin1 = { lat: 55.93, lng: -3.118 };
+        //const origin2 = "Greenwich, England";
+		// 38.176827213	-79.035348269
+        const destinationA = "Palmyra, Virginia";
+        const destinationB = { lat: 38.17, lng: -79.03 };
         const request = {
-          origins: [origin1, origin2],
+          origins: [ userLatLng ],
           destinations: [destinationA, destinationB],
           travelMode: google.maps.TravelMode.DRIVING,
-          unitSystem: google.maps.UnitSystem.METRIC,
+          unitSystem: google.maps.UnitSystem.IMPERIAL,
           avoidHighways: false,
           avoidTolls: false,
         };
@@ -148,6 +164,8 @@
         <h3 style="flex-grow: 0">Response</h3>
         <pre style="flex-grow: 1" id="response"></pre>
       </div>
+    </div>
+	<div id="message-container">
     </div>
     <script
       src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDYZNT8PjueZDh3aXpghiQ-0OcTYWu-maI&callback=initMap&v=weekly&solution_channel=GMP_CCS_distancematrix_v2"
