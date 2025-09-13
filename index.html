@@ -14,23 +14,28 @@
        * Copyright 2019 Google LLC. All Rights Reserved.
        * SPDX-License-Identifier: Apache-2.0
        */
-      function initMap() {
-		var userLatLng;
-        // build request
-		if (navigator.geolocation) {
+	   var userLatLng;
+	   function getcurrentLocation() {
+	   		if (navigator.geolocation) {
 			navigator.geolocation.getCurrentPosition(
 			  (position) => {
 				userLatLng = new google.maps.LatLng(
 				  position.coords.latitude,
 				  position.coords.longitude
 				);
+				doInit();
 			},
             () => {
-                document.getElementById('message-container').innerHTML = "<p>Could not get your location. Please allow location access.</p>";
+                console.log("Could not get your location. Please allow location access.");
             });
         } else {
-            document.getElementById('message-container').innerHTML = "<p>Geolocation is not supported by your browser.</p>";
+            console.log("Geolocation is not supported by your browser.");
         }
+
+	   }
+		getcurrentLocation();
+	   
+      function doInit() {
         const bounds = new google.maps.LatLngBounds();
         const markersArray = [];
 		// 37.852524548	-78.271317821
