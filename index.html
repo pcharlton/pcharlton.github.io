@@ -25,7 +25,6 @@
 				  position.coords.latitude,
 				  position.coords.longitude
 				);
-				initMap();
 			},
             () => {
                 console.log("Could not get your location. Please allow location access.");
@@ -173,6 +172,7 @@
       </div>
     </div>
 	<button onclick="getcurrentLocation()">Get current location</button>
+	<button onclick="initMap()">Init map</button>
 	<div id="message-container">
     </div>
     <script
