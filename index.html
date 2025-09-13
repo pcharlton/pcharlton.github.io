@@ -14,7 +14,7 @@
        * Copyright 2019 Google LLC. All Rights Reserved.
        * SPDX-License-Identifier: Apache-2.0
        */
-	   var userLatLng;
+	   var userLatLng = { lat: 37.71, lng: -78.30 }
 	   function getcurrentLocation() {
 	   		if (navigator.geolocation) {
 			navigator.geolocation.getCurrentPosition(
@@ -23,7 +23,7 @@
 				  position.coords.latitude,
 				  position.coords.longitude
 				);
-				doInit();
+				initMap();
 			},
             () => {
                 console.log("Could not get your location. Please allow location access.");
@@ -33,9 +33,8 @@
         }
 
 	   }
-		getcurrentLocation();
 	   
-      function doInit() {
+      function initMap() {
         const bounds = new google.maps.LatLngBounds();
         const markersArray = [];
 		// 37.852524548	-78.271317821
