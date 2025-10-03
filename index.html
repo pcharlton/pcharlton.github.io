@@ -1,16 +1,43 @@
-<head>
-<!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','GTM-W693ZBNH');</script>
-<!-- End Google Tag Manager -->
-</head>
-<body>
-<!-- Google Tag Manager (noscript) -->
-<noscript><iframe src=https://www.googletagmanager.com/ns.html?id=GTM-W693ZBNH
-height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-<!-- End Google Tag Manager (noscript) -->
-<a href="personal-info.html">Personal Info</a>
-</body>
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Google Map with Multiple Pins</title>
+    <style>
+      #map {
+        height: 100vh;
+        width: 100%;
+      }
+    </style>
+	<script>
+		function initMap() {
+		  // Array of locations to display pins for
+		  const locations = [
+			{ position: { lat: 34.0522, lng: -118.2437 }, title: "Los Angeles" },
+			{ position: { lat: 40.7128, lng: -74.0060 }, title: "New York" },
+			{ position: { lat: 41.8781, lng: -87.6298 }, title: "Chicago" },
+			{ position: { lat: 30.2672, lng: -97.7431 }, title: "Austin" }
+		  ];
+
+		  // Create a new map instance and place it in the #map div
+		  const map = new google.maps.Map(document.getElementById("map"), {
+			zoom: 4,
+			center: locations[0].position // Center the map on the first location
+		  });
+
+		  // Loop through the locations array to create and place markers
+		  locations.forEach(location => {
+			new google.maps.Marker({
+			  position: location.position,
+			  map: map,
+			  title: location.title
+			});
+		  });
+		}	
+	</script>
+  </head>
+  <body>
+    <h3>Google Map with Multiple Pins</h3>
+    <div id="map"></div>
+		<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDYZNT8PjueZDh3aXpghiQ-0OcTYWu-maI&callback=initMap&loading=async"></script>
+  </body>
+</html>
